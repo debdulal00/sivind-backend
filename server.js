@@ -17,8 +17,14 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const serviceAccount = require("./serviceAccountKey.json");
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+  )}
+ }); 
+ /*ivateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+  })/*
 });
+
 
 const db = admin.firestore();
 
