@@ -1,42 +1,82 @@
-const widgetRoutes = require("./routes/widget");
-const dashboardRoutes = require("./routes/dashboard");
-const aiRoutes = require("./routes/ai");
+/**
+ * 🔥 CONFIRM FILE LOAD
+ */
+console.log("🔥 SERVER.JS LOADED - WIDGET ROUTES SHOULD EXIST");
 
-
-
-
-
+/**
+ * ============================
+ * ENV
+ * ============================
+ */
 require("dotenv").config();
+
+/**
+ * ============================
+ * CORE IMPORTS
+ * ============================
+ */
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
 const Stripe = require("stripe");
 const { Server } = require("socket.io");
 
+/**
+ * ============================
+ * APP + SERVER
+ * ============================
+ */
 const app = express();
 const server = http.createServer(app);
 
+/**
+ * ============================
+ * FIREBASE ADMIN (SINGLETON)
+ * ============================
+ */
 const admin = require("./firebaseAdmin");
 const db = admin.firestore();
 
+/**
+ * ============================
+ * GLOBAL MIDDLEWARE (ORDER MATTERS)
+ * ============================
+ */
+app.use(cors());              // ✅ MUST BE FIRST
+app.use(express.json());      // ✅ SECOND
 
+/**
+ * ============================
+ * ROUTES (LOAD AFTER MIDDLEWARE)
+ * ============================
+ */
+const widgetRoutes = require("./routes/widget");
+const dashboardRoutes = require("./routes/dashboard");
+const aiRoutes = require("./routes/ai");
 
-/* ============================
-   Firebase Admin (Cloud Run)
-============================ */
+app.use("/widget", widgetRoutes);
+app.use("/dashboard", dashboardRoutes);
+app.use("/ai", aiRoutes);
 
-/* ============================
-   Stripe
-============================ */
+console.log("✅ /widget, /dashboard, /ai routes mounted");
+
+/**
+ * ============================
+ * STRIPE
+ * ============================
+ */
 if (!process.env.STRIPE_SECRET_KEY) {
   console.error("❌ STRIPE_SECRET_KEY missing");
   process.exit(1);
 }
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-/* ============================
-   🔐 Auth Middleware
-============================ */
+/**
+ * ============================
+ * AUTH MIDDLEWARE
+ * ============================
+ */
 const authenticate = async (req, res, next) => {
   try {
     const header = req.headers.authorization || "";
@@ -55,9 +95,11 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-/* ============================
-   Stripe Webhook (RAW BODY)
-============================ */
+/**
+ * ============================
+ * STRIPE WEBHOOK (RAW BODY)
+ * ============================
+ */
 app.post(
   "/stripe-webhook",
   express.raw({ type: "application/json" }),
@@ -108,21 +150,11 @@ app.post(
   }
 );
 
-/* ============================
-   JSON Middleware (after webhook)
-============================ */
-app.use(express.json());
-app.use("/widget", widgetRoutes);
-app.use("/dashboard", dashboardRoutes);
-app.use("/ai", aiRoutes);
-
-
-
-app.use(cors());
-
-/* ============================
-   Stripe Checkout
-============================ */
+/**
+ * ============================
+ * STRIPE CHECKOUT
+ * ============================
+ */
 app.post("/create-checkout", authenticate, async (req, res) => {
   try {
     const { priceId } = req.body;
@@ -144,16 +176,20 @@ app.post("/create-checkout", authenticate, async (req, res) => {
   }
 });
 
-/* ============================
-   Health Check
-============================ */
+/**
+ * ============================
+ * HEALTH CHECK
+ * ============================
+ */
 app.get("/", (req, res) => {
   res.send("✅ SivInd backend running");
 });
 
-/* ============================
-   🔌 Socket.IO (Secure)
-============================ */
+/**
+ * ============================
+ * SOCKET.IO
+ * ============================
+ */
 const io = new Server(server, {
   cors: { origin: "*" },
 });
@@ -167,7 +203,7 @@ io.use(async (socket, next) => {
     socket.user = { uid: decoded.uid, email: decoded.email };
     socket.join(decoded.uid);
     next();
-  } catch (err) {
+  } catch {
     next(new Error("Unauthorized"));
   }
 });
@@ -176,9 +212,11 @@ io.on("connection", (socket) => {
   console.log("🔌 Socket connected:", socket.user.uid);
 });
 
-/* ============================
-   Cloud Run PORT
-============================ */
+/**
+ * ============================
+ * CLOUD RUN PORT (REQUIRED)
+ * ============================
+ */
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
   console.log(`🚀 SivInd backend listening on port ${PORT}`);
