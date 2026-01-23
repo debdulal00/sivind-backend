@@ -11,20 +11,19 @@ const express = require("express");
 const http = require("http");
 const cors = require("cors");
 const Stripe = require("stripe");
-const admin = require("firebase-admin");
 const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
 
+const admin = require("./firebaseAdmin");
+const db = admin.firestore();
+
+
+
 /* ============================
    Firebase Admin (Cloud Run)
 ============================ */
-admin.initializeApp({
-  projectId: "sivind-6bef6",
-});
-
-const db = admin.firestore();
 
 /* ============================
    Stripe
