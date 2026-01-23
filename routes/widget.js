@@ -48,15 +48,16 @@ router.post("/token", authenticate, async (req, res) => {
 });
 
 /* ============================
-   GET /widget/status
+   GET /widget/status (PUBLIC)
 ============================ */
-router.get("/status", authenticate, async (req, res) => {
+router.get("/status", async (req, res) => {
   res.json({
     status: "inactive",
     activeVisitors: 0,
     loads: 0
   });
 });
+
 
 module.exports = router;
 
